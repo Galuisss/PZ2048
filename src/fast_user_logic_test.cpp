@@ -1,12 +1,18 @@
-#include "include/game_logic.h"
+#include <algorithm>
+#include <random>
 #include <iomanip>
+#include <chrono>
+#include <iostream>
+#include <sstream>
+#include <cmath>
+#include "include/utils.h"
 //WARNING: DO NOT DELETE THE THREE LINES BELOW!
 //WHEN YOU PUT YOUR CODE TO ACMOJ, YOU WOULD DELETE THE LINE 1 AND USE LINE 4-6 INSTEAD 
 //#include "game_logic.h"
 //#include "utils.h"
 //#include "utils.cpp"
 
-namespace PZ2048 {
+using namespace PZ2048;
 
 static int row_num_ = 4, col_num_ = 4;
 static int target_ = 0;
@@ -18,10 +24,24 @@ static int board_[10][10];
 static int score_ = 0;
 static int largest_ = 2;
 
-static int board_last_[10][10];
 static int board_temp_[10][10];
-static int score_last_ = 0;
-static int largest_last_ = 2;
+
+inline std::pair<std::pair<int, int>, int> TryGenerateTile() {
+    std::vector<std::pair<int, int>> slot_list;
+    for(int i = 0; i < row_num_; i++)
+    for(int j = 0; j < col_num_; j++)
+        if(board_[i][j] == 0)
+            slot_list.emplace_back(i, j);
+        if(slot_list.empty())
+            return {{-1, -1}, -1};
+    auto pos = PZ2048::rand(), sig = PZ2048::rand();
+    pos %= slot_list.size();
+    int row = slot_list[pos].first, col = slot_list[pos].second;
+    sig %= 10;
+    int val = (sig == 0 ? 4 : 2);
+    board_[row][col] = val;
+    return {{row, col}, val};
+}
 
 void Start(int row_num, int col_num, int target, uint game_seed) {
     row_num_ = row_num, col_num_ = col_num;
@@ -39,7 +59,7 @@ void Start(int row_num, int col_num, int target, uint game_seed) {
     score_ = 0;
     largest_ = 2;
 
-    srand(game_seed);
+    PZ2048::srand(game_seed);
     TryGenerateTile();
 }
 
@@ -56,8 +76,6 @@ int GetCols() {
 }
 
 bool TryRun(char dir) {
-    int score_temp_ = score_;
-    int largest_temp_ = largest_;
     for (int i = 0; i < row_num_; i++)
         for (int j = 0; j < col_num_; j++) {
             board_temp_[i][j] = board_[i][j];
@@ -181,55 +199,9 @@ bool TryRun(char dir) {
     }
 
     if (!has_changed) return false;
-
-    for (int i = 0; i < row_num_; i++)
-        for (int j = 0; j < col_num_; j++) {
-            board_last_[i][j] = board_temp_[i][j];
-        }
-    undone_ = false;
-    score_last_ = score_temp_;
-    largest_last_ = largest_temp_;
     ++steps_;
     TryGenerateTile();
     return true;
-}
-
-bool Undo() {
-    if (undone_) return false;
-
-    undone_ = true;
-    for (int i = 0; i < row_num_; i++)
-        for (int j = 0; j < col_num_; j++) {
-            board_[i][j] = board_last_[i][j];
-        }
-
-    score_ = score_last_;
-    largest_ = largest_last_;
-    --steps_;
-    return true;
-}
-
-void SetTile(int row_index, int col_index, int value) {
-    board_[row_index][col_index] = value;
-    if (value > largest_) {
-        largest_ = value;
-    } 
-}
-
-int GetTile(int row_index, int col_index) {
-    return board_[row_index][col_index];
-}
-
-int Score() { 
-    return score_;
-}
-
-int Steps() { 
-    return steps_;
-}
-
-int GetTarget() { 
-    return target_;
 }
 
 bool HasReachedTarget() {
@@ -245,15 +217,71 @@ bool Stuck() {
     return true;
 }
 
-void PrintBoard() {
-    std::cout << std::left;
-    for (int i = 0; i < row_num_; ++i) {
-        for (int j = 0; j < col_num_; ++j) {
-            std::cout << std::setw(4) << (board_[i][j] == 0 ? 0 : 1 << board_[i][j]);
-            if (j + 1 < col_num_) std::cout << ' ';
-        }
-        std::cout << '\n';
+char Decide() {
+    static bool randed = false;
+    static const char dir_map[4] = {'w', 's', 'a', 'd'};
+    if(!randed) {
+        PZ2048::srand(time(nullptr));
+        randed = true;
     }
+
+    static int dir = 0;
+    dir = (dir + 1) % 4;
+    return dir_map[dir];
 }
 
+int main() {
+    auto start_time = std::chrono::steady_clock::now();
+    int total_score = 0;
+    int total_steps = 0;
+    int games = 5000;
+    target_ = 2048;
+    row_num_ = 4, col_num_ = 4;
+    for (int i = 0; i < games; ++i) {
+        uint seed = i + 1;
+        Start(row_num_, col_num_, target_,seed);
+        while (true) {
+            char oper = Decide();
+            if (oper != 'w' && oper != 's' && oper != 'a' && oper != 'd') {
+                continue;
+            }
+            TryRun(oper);
+            if (HasReachedTarget()) {
+                total_score += score_;
+                total_steps += steps_;
+                break;
+            }
+            if (Stuck()) {
+                total_score += score_;
+                total_steps += steps_;
+                break;
+            }
+        }
+    }
+    auto end_time = std::chrono::steady_clock::now();
+    double avg_score = total_score * 1.0 / games;
+    double avg_steps = total_steps * 1.0 / games;
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+    std::cout << "Average score over " << games << " games: " << avg_score << std::endl;
+    std::cout << "Average steps over " << games << " games: " << avg_steps << std::endl;
+    std::cout << "Total run time: " << ms << " ms" << std::endl;
+    std::cout.flush();
+
+    // 按公式输出分数
+    int final_score = static_cast<int>(avg_score + 0.5);
+    int output_pts = 0;
+    if (final_score < 1000) {
+        output_pts = 0;
+    } else if (final_score < 3000) {
+        output_pts = static_cast<int>(std::ceil(final_score * final_score / 200000.0)) + 30;
+    } else if (final_score < 8000) {
+        output_pts = static_cast<int>(std::ceil(12.27 * std::log2(final_score / 1000.0) + 55.55));
+    } else {
+        output_pts = std::min(static_cast<int>(std::ceil(42.92 * std::sqrt(std::log2(final_score / 1000.0)) + 18.16)), 110);
+    }
+    std::cout << "Score by formula: " << output_pts << std::endl;
+    std::cout.flush();
+    return 0;
 }
+
+
