@@ -39,7 +39,7 @@ void Start(int row_num, int col_num, int target, uint game_seed) {
     score_ = 0;
     largest_ = 2;
 
-    srand(game_seed);
+    PZ2048::srand(game_seed);
     TryGenerateTile();
 }
 
@@ -240,7 +240,8 @@ bool Stuck() {
     for (int i = 0; i < row_num_; i++)
         for (int j = 0; j < col_num_; j++) {
             if (board_[i][j] == 0) return false;
-            if (i < row_num_ - 1 && j < col_num_ - 1 && (board_[i][j] == board_[i][j+1] || board_[i][j] == board_[i+1][j])) return false;
+            if (i < row_num_ - 1 && board_[i][j] == board_[i+1][j]) return false;
+            if (j < col_num_ - 1 && board_[i][j] == board_[i][j+1]) return false;
         }
     return true;
 }
@@ -249,7 +250,7 @@ void PrintBoard() {
     std::cout << std::left;
     for (int i = 0; i < row_num_; ++i) {
         for (int j = 0; j < col_num_; ++j) {
-            std::cout << std::setw(4) << (board_[i][j] == 0 ? 0 : 1 << board_[i][j]);
+            std::cout << std::setw(4) << board_[i][j];
             if (j + 1 < col_num_) std::cout << ' ';
         }
         std::cout << '\n';
