@@ -11,7 +11,6 @@ add_compile_definitions(BOOST_ASIO_STANDALONE)
 
 add_executable(game_logic_test src/game_logic_test.cpp src/game_logic.cpp src/utils.cpp)
 add_executable(user_logic_test src/user_logic_test.cpp src/user_logic.cpp src/game_logic.cpp src/utils.cpp)
-add_executable(fast_user_logic_test src/fast_user_logic_test.cpp src/utils.cpp)
 add_executable(server src/server.cpp src/game_logic.cpp src/user_logic.cpp src/utils.cpp)
 
 # 添加运行和清理目标

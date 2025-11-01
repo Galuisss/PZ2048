@@ -216,13 +216,6 @@ static double eval_state(const SimState& s) {
         {7, 6, 5, 4}, 
         {0, 1, 2, 3}
     };
-    
-/*     static constexpr double weights2[4][4] = {
-        {64, 32, 16, 8}, 
-        {32, 16, 8, 4}, 
-        {16, 8, 4, 2}, 
-        {8, 4, 2, 1}
-    }; */
 
     double score = 0;
     for (int i = 0; i < row_num_; ++i)
@@ -289,7 +282,6 @@ static char max_value_root(int maxDepth){
 } 
 
 char Decide() {
-    //PrintBoard();
     const int MAX_DEPTH = 3;
     return max_value_root(MAX_DEPTH);
 }
